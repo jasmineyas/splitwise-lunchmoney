@@ -50,95 +50,91 @@ TODOs:
 
     ```
 
-  - `payee`: name[] of the TO field where user A is the "from"
-  - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
-  - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
-  - `notes`:
-    "Expense ID: 4096668238
-    Original expense: save on foods
-    Amount owed: $25.46"
-    - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
-  - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-  - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
-  - `tags`: `["Splitwise-lunchmoney-sync"]`,
+    - `payee`: name[] of the TO field where user A is the "from"
+    - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
+    - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
+    - `notes`:
+      "Expense ID: 4096668238
+      Original expense: save on foods
+      Amount owed: $25.46"
+      - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
+    - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
+    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+    - `tags`: `["Splitwise-lunchmoney-sync"]`,
 
   - "how should a transaction added by User B and User B owns money, would look like in User A's LM?" SAME AS "how should a transaction added by User A and User B owns money, would look like in User A's LM?" - both user A paid, and per our assumption, user A already has a transacation recorded somewhere, so we just need to note down what user B/C/D needs to pay us.
 
-  - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-  - `amount`: the sum of amounts whre user A is the "to" in repayments[] - (this is a positive number)
+    - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
+    - `amount`: the sum of amounts whre user A is the "to" in repayments[] - (this is a positive number)
 
-  ```json
-    -- example 1 one user
-      "repayments": [
-                  {
-                      "from":50086667 ,
-                      "to" :9792490 ,
-                      "amount": "17.86"
-                  }
-              ],
+    ```json
+      -- example 1 one user
+        "repayments": [
+                    {
+                        "from":50086667 ,
+                        "to" :9792490 ,
+                        "amount": "17.86"
+                    }
+                ],
 
-    -- example 2 multiple users
-      "repayments": [
-          {
-              "from": 50086667,
-              "to": 9792490,
-              "amount": "17.86"
-          },
-          {
-              "from": 50043932,
-              "to": 9792490,
-              "amount": "1.86"
-          },
-      ],
-  ```
+      -- example 2 multiple users
+        "repayments": [
+            {
+                "from": 50086667,
+                "to": 9792490,
+                "amount": "17.86"
+            },
+            {
+                "from": 50043932,
+                "to": 9792490,
+                "amount": "1.86"
+            },
+        ],
+    ```
 
-  - `payee`: name[] of the TO field where user A is the "to"
-  - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
-  - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
-  - `notes`:
-    "Expense ID: 4096668238
-    Original expense: save on foods
-    Amount owed to you: $25.46"
-  - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
-  - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-  - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
-  - `tags`: `["Splitwise-lunchmoney-sync"]`, '["reimbursement-placeholder"]'
+    - `payee`: name[] of the TO field where user A is the "to"
+    - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
+    - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
+    - `notes`:
+      "Expense ID: 4096668238
+      Original expense: save on foods
+      Amount owed to you: $25.46"
+    - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
+    - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
+    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+    - `tags`: `["Splitwise-lunchmoney-sync"]`, '["reimbursement-placeholder"]'
 
   - **IMPORTANT CONTEXT ON REIMBURSEMENT** SW actually does not record reimbursement on a transaction basis. It only records cash payment and does not update the individual transactions. SO... I guess we can do the same thing to lunch money.
   - **Any reimbursement in splitwise will be marked by "creation_method": "payment"; I guess what we can do is...**
   - how should , user B pays back user A looks like in user A's LM?
 
-  - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-  - `amount`: the sum of amounts whre user A is the "to" in repayments[] (this would be a **negative** number - as we already have a placeholder before that artificially created those credits for book keeping purpose - so this is to cancel out those reimbursement - then there's only one true reimbursement - aka the actual e transfer these ppl send)
-  - `payee`: name[] of the FROM field where user A is the "to"
-  - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
-  - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
-  - `notes`:
-    "Expense ID: 4109650330
-    Splitwise payment "
-  - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
-  - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-  - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
-  - `tags`: `["Splitwise-lunchmoney-sync"]`, '["splitwise-payment"]'
+    - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
+    - `amount`: the sum of amounts whre user A is the "to" in repayments[] (this would be a **negative** number - as we already have a placeholder before that artificially created those credits for book keeping purpose - so this is to cancel out those reimbursement - then there's only one true reimbursement - aka the actual e transfer these ppl send)
+    - `payee`: name[] of the FROM field where user A is the "to"
+    - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
+    - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
+    - `notes`:
+      "Expense ID: 4109650330
+      Splitwise payment "
+    - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
+    - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
+    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+    - `tags`: `["Splitwise-lunchmoney-sync"]`, '["splitwise-payment"]'
 
   - how should , User A pays back user B, looks like in user A's LM?
 
-  - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-  - `amount`: the sum of amounts whre user A is the "FROM" in repayments[] (this would be a **POSITIVE** number - as we already have a debt - so this is to clear the debt - then there's only one true debt - aka the actual e transfer user a send to others)
-  - `payee`: name[] of the TO field where is the "From"
-  - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
-  - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
-  - `notes`:
-    "Expense ID: 4109650330
-    Splitwise payment "
-  - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
-  - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-  - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
-  - `tags`: `["Splitwise-lunchmoney-sync"]`, '["splitwise-payment"]'
-
-  ```
-
-  ```
+    - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
+    - `amount`: the sum of amounts whre user A is the "FROM" in repayments[] (this would be a **POSITIVE** number - as we already have a debt - so this is to clear the debt - then there's only one true debt - aka the actual e transfer user a send to others)
+    - `payee`: name[] of the TO field where is the "From"
+    - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
+    - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
+    - `notes`:
+      "Expense ID: 4109650330
+      Splitwise payment "
+    - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
+    - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
+    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+    - `tags`: `["Splitwise-lunchmoney-sync"]`, '["splitwise-payment"]'
 
 - [x] when a new splitwise transaction is added, how does the script know which one that we should send to lunchmoney?
 
