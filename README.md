@@ -1,7 +1,7 @@
 Vision:
 
-- The main point of this is to reduce the data entry labor in lunch money after creating a split wise transaction. That's MVP
-- Anything else extra - is additional and can come after.
+- The main purpose (MVP) of this script is to reduce data entry labor in lunch money (LM) after creating a split wise (SW) record.
+- Anything else extra is additional and can come after.
 
 TODOs:
 
@@ -13,103 +13,113 @@ TODOs:
 
 - [x] Design the mechanism to parse transaction between splitwise and lunchmoney
 
-  - we will only record our debt to the other person or the debt the other person owns us. **The assumption** is you have already paid with a credit card or cash, something that you have alread tracked with LM. **Another assumption** you have a splitwise asset (account).
-    - SOMEDAY: add feature to also record what you paid as well (total debt) - for example, if it's a cash payment - maybe the user can use a prefix - "cash - farmers market" - then this script would also know to create a cash transaction your payment into lunchmoney as a transaction.
-  - overall mechanism: add tags to lunchmoney transaction
+  - overall mechanism: add tags to LM transaction
+  - we will only record our debt to the other person, and the debt the other person owns us.
+  - Assumptions:
+    - you have a splitwise asset (account) in LM.
+    - you have already paid the amount with a credit card or cash, and is tracked in LM (if you are owed).
+    - SOMEDAY: also record what you paid as well (total debt) - for example, if it's a cash payment - maybe the user can use a prefix - "cash - farmers market" in SW - then this script would also know to create a cash transaction your payment into lunchmoney as a transaction so you don't need to manually enter cash or other untracked transactions in LM.
+  - Decision:
 
-  - **assumption/my preference** - one transaction in splitwise to one transaction in lunchmoney - if 5 users are invovled in a transaction, I would keep them in one transaction in LM - with payee user B, user C, user D, user E.
+    - one to one relationship - one transaction in splitwise to one transaction in lunchmoney. E.g. if 5 users are invovled in a transaction, I would keep them in one transaction in LM - with payee user B, user C, user D, user E.
 
-  - (these two look the same - since both are just user B/C/D who paid, and user A owns money) how should a transaction added by User B and _User A owns money_, would look like in User A's LM? how should a transaction added by User A and _User A owns money_, would like like in User A's LM?
+  - Example: does who add a transaction in splitwise matters? a transaction added by User B and _User A owns money_ vs a transaction added by User A and _User A owns money_, how would both look like in User A's LM? Quick thought, these two look the same in user A's LM since user A owns money. So the answer is no.
 
-    - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-    - `amount`: the sum of amounts whre user A is the "from" in repayments[]; this would be negative ([ACTION]In the env field, maybe add a setting - show user A owned money as negative, and other user owned moeny as credit positive; and the user can also turn it off)
+  **Example of user A owns money in user A's LM.**
 
-    ```json
-      -- example 1 one user
-      "repayments": [
-      {
-      "from": 9792490,
-      "to": 50086667,
-      "amount": "17.86"
-      }
-      ],
+  - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
+  - `amount`: the sum of amounts where user A is the "from" in `repayments[]`; debt would be negative by default.
+    - [TODO] In the env field, maybe add a setting - show user A owned money as negative, and other user owned moeny as credit positive; and the user can also turn it off
 
-      -- example 2 multiple users
-      "repayments": [
-      {
-      "from": 9792490,
-      "to": 50086667,
-      "amount": "17.86"
-      },
-      {
-      "from": 9792490,
-      "to": 50043932,
-      "amount": "1.86"
-      },
-      ],
+  ```json
+  <From Splitwise>
+    -- example 1 one user
+    "repayments": [
+    {
+    "from": 9792490,
+    "to": 50086667,
+    "amount": "17.86"
+    }
+    ],
 
-    ```
+    -- example 2 multiple users
+    "repayments": [
+    {
+    "from": 9792490,
+    "to": 50086667,
+    "amount": "17.86"
+    },
+    {
+    "from": 9792490,
+    "to": 50043932,
+    "amount": "1.86"
+    },
+    ],
 
-    - `payee`: name[] of the TO field where user A is the "from"
-    - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
-    - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
-    - `notes`:
-      "Expense ID: 4096668238
-      Original expense: save on foods
-      Amount owed: $25.46"
-      - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
-    - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
-    - `tags`: `["Splitwise-lunchmoney-sync"]`,
+  ```
+
+  - `payee`: name[] of the TO field where user A is the "from"
+  - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
+  - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
+  - `notes`:
+    "Expense ID: 4096668238
+    Original expense: save on foods
+    Amount owed: $25.46"
+    - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
+  - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
+  - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+  - `tags`: `["Splitwise-lunchmoney-sync"]`,
 
   - "how should a transaction added by User B and User B owns money, would look like in User A's LM?" SAME AS "how should a transaction added by User A and User B owns money, would look like in User A's LM?" - both user A paid, and per our assumption, user A already has a transacation recorded somewhere, so we just need to note down what user B/C/D needs to pay us.
 
-    - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-    - `amount`: the sum of amounts whre user A is the "to" in repayments[] - (this is a positive number)
+  **Example of user B owns money in user A's LM**
 
-    ```json
-      -- example 1 one user
-        "repayments": [
-                    {
-                        "from":50086667 ,
-                        "to" :9792490 ,
-                        "amount": "17.86"
-                    }
-                ],
+  - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
+  - `amount`: the sum of amounts whre user A is the "to" in repayments[] - (this is a positive number)
 
-      -- example 2 multiple users
-        "repayments": [
-            {
-                "from": 50086667,
-                "to": 9792490,
-                "amount": "17.86"
-            },
-            {
-                "from": 50043932,
-                "to": 9792490,
-                "amount": "1.86"
-            },
-        ],
-    ```
+  ```json
+    -- example 1 one user
+      "repayments": [
+                  {
+                      "from":50086667 ,
+                      "to" :9792490 ,
+                      "amount": "17.86"
+                  }
+              ],
 
-    - `payee`: name[] of the TO field where user A is the "to"
-    - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
-    - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
-    - `notes`:
-      "Expense ID: 4096668238
-      Original expense: save on foods
-      Amount owed to you: $25.46"
-    - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
-    - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
-    - `tags`: `["Splitwise-lunchmoney-sync"]`, '["reimbursement-placeholder"]'
+    -- example 2 multiple users
+      "repayments": [
+          {
+              "from": 50086667,
+              "to": 9792490,
+              "amount": "17.86"
+          },
+          {
+              "from": 50043932,
+              "to": 9792490,
+              "amount": "1.86"
+          },
+      ],
+  ```
 
-  - **IMPORTANT CONTEXT ON REIMBURSEMENT** SW actually does not record reimbursement on a transaction basis. It only records cash payment and does not update the individual transactions. SO... I guess we can do the same thing to lunch money.
-  - **Any reimbursement in splitwise will be marked by "creation_method": "payment"; I guess what we can do is...**
+  - `payee`: name[] of the TO field where user A is the "to"
+  - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
+  - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
+  - `notes`:
+    "Expense ID: 4096668238
+    Original expense: save on foods
+    Amount owed to you: $25.46"
+  - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
+  - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
+  - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+  - `tags`: `["Splitwise-lunchmoney-sync"]`, '["reimbursement-placeholder"]'
+
+  - **IMPORTANT CONTEXT ON REIMBURSEMENT** SW actually does not record reimbursement on a transaction basis. It only records cash payment and does not update the original individual transactions. **Any settle up transaction in splitwise will be marked by "creation_method": "payment";** So we will do the same - parse settle up transactions and add that as a negative number if
+
   - how should , user B pays back user A looks like in user A's LM?
 
     - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-    - `amount`: the sum of amounts whre user A is the "to" in repayments[] (this would be a **negative** number - as we already have a placeholder before that artificially created those credits for book keeping purpose - so this is to cancel out those reimbursement - then there's only one true reimbursement - aka the actual e transfer these ppl send)
+    - `amount`: the sum of amounts where user A is the "to" in repayments[] (this would be a **negative** number - as we already have a placeholder before that artificially created those credits for book keeping purpose - so this is to cancel out those reimbursement - then there's only one true reimbursement - aka the actual e transfer these ppl send)
     - `payee`: name[] of the FROM field where user A is the "to"
     - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
     - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
@@ -118,13 +128,13 @@ TODOs:
       Splitwise payment "
     - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
     - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+    - `external_id`: `"splitwise-payment-{expense_id}"` (e.g., `"splitwise-payment-4096668238"`)
     - `tags`: `["Splitwise-lunchmoney-sync"]`, '["splitwise-payment"]'
 
   - how should , User A pays back user B, looks like in user A's LM?
 
     - `date`: Splitwise `date` (convert from `2025-10-11T06:58:32Z` to `2025-10-11`)
-    - `amount`: the sum of amounts whre user A is the "FROM" in repayments[] (this would be a **POSITIVE** number - as we already have a debt - so this is to clear the debt - then there's only one true debt - aka the actual e transfer user a send to others)
+    - `amount`: the sum of amounts where user A is the "FROM" in repayments[] (this would be a **POSITIVE** number - as we already have a debt - so this is to clear the debt - then there's only one true debt - aka the actual e transfer user a send to others)
     - `payee`: name[] of the TO field where is the "From"
     - `currency`: Splitwise `currency_code` lowercased (e.g., `cad`)
     - `asset_id`: From env var (assigns to dedicated Splitwise account in Lunch Money)
@@ -133,7 +143,7 @@ TODOs:
       Splitwise payment "
     - \*If `receipt.original` is NOT null, include the the recipt.original URL in `notes` as `[Receipt: {url}]`
     - `status`: `"uncleared"` (uncleared means unreviewed, users typically review transactions in lunchmoney and mark them reviewed "cleared")
-    - `external_id`: `"splitwise-{expense_id}"` (e.g., `"splitwise-4096668238"`)
+    - `external_id`: `"splitwise-payment-{expense_id}"` (e.g., `"splitwise-payment-4096668238"`)
     - `tags`: `["Splitwise-lunchmoney-sync"]`, '["splitwise-payment"]'
 
 - [x] when a new splitwise transaction is added, how does the script know which one that we should send to lunchmoney?
@@ -141,18 +151,42 @@ TODOs:
   - [ACTION] Filter critiera:
     - no "pre-SW-LM-handshake"
     - deleted_by and deleted_at are both empty (if a transaction is deleted... let's not do anything to it)
-  - user doesn't always add transactions promptly - sometimes I might add a transaction for June when it's already in December lol
+  - important note: user doesn't always add transactions promptly - sometimes I might add a transaction for June when it's already in December lol
   - IDEA: [ACTION] tag all old transactions right now with "pre-SW-LM-handshake" in Splitwise, and then whenever a new transaciton is added, and we will check if it has "pre-SW-LM-handshake" or if it has "synced-to-LM" tag, if not, then we would process it and then add that tag.
     - issue with this... i dont think SW has tag.
-    - IDEA:
+    - Brainstorm:
       - NO - we store the data somewhere else like in an external database and then I have to deal with storage
       - **YES - I use comments. It's fairly easy to create a comment (just content) and get a comment .** We will be using SW comments for persistence. Need to check which user posted the comment. As multiple users could be running this service. (it's cheaper for users if SW handles the persistence and it doesn't need to be that timely...)
       - How about we alter the name of the transaction? add an appedix? this would be computationally easier to deal with? but comments will at least see a time stamp... when the transaction was synced. So that has the timestamp. I am still leaning towards comments.
   - [ACTION] Okay taking the comment idea. Maybe beside adding the comment,"synced-to-LM", we will post the transaction ID from lunch money as well.
     - [ACTION] UPDATE functionality - maybe we can also just post a snapshop of the transaciton in json format in the comment.... then we can do a text _comparison_. If there's anything changed... we can then update the amount owned etc. Then If it's deleted... then also delete the transaction in LM as well.
-    - **IMPORTANT CONTEXT ON REIMBURSEMENT** SW actually does not record reimbursement on a transaction basis. It only records cash payment and does not update the individual transactions. SO... I guess we can do the same thing to lunch money.
     - [ACTION] There's no limit to how many comments I can add per transaction, I would also make the script to add a comment of the lunch money API request body per transaction. Use comments as history and debugging purpose. Also add the response too. Why not?
     - [check]: if the script would create multiple transactions at the same time - then we need to make this matching tag more unique.
+  - What a SW comment should have:
+    - Synced-to-LM: lunch money transaction ID <>
+    - Current splitwise record: {} and its hash(?) for comparison purpose
+    - Post body to lunch money: {}
+    - Response from Lunch money: {}
+    - timestamp, added by (metadata)
+
+- If user A is running the script, everything is recorded for user A's perspective. So all comments that we process need to be posted by user A! Imagine both user A and user B are running this script, then we will see...one comment from user A and one comment from user B containing their perspective lunch money transaction details.
+- Brainstorming for scope:
+  - maybe it's worth it to make it hyper specific for just me and wesley.
+  - provide a friend_id as well to only automate our transactions.
+  - and maybe it's worth it to also add wesley's lunch money's (the other friend's lunch money API token) - since it's transactions between two friends so we only need one splitwies access token.
+  - let's do that - rather than two ppl need to be running it at the same time.
+- Then what a SW comment should have now:
+  - Synced-to-LM:
+    - User A: lunch money transaction ID <>
+    - User B: lunch money transaction ID <>
+  - Current splitwise record: {} and its hash(?) for comparison purpose
+  - Post body to lunch money:
+    - User A: {}
+    - User B: {}
+  - Response from Lunch money:
+    - User A: {}
+    - User B: {}
+  - timestamp, added by (metadata)
 
 # Implementation
 

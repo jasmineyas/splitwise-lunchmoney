@@ -1,4 +1,4 @@
-package model
+package models
 
 type LunchMoneyTransaction struct {
     Date        string   `json:"date"`
