@@ -146,7 +146,7 @@ TODOs:
     - issue with this... i dont think SW has tag.
     - IDEA:
       - NO - we store the data somewhere else like in an external database and then I have to deal with storage
-      - **YES - I use comments. It's fairly easy to create a commnet (just expensive_id and content) and get a comment (expensive_id).** We will be using SW comments for persistence.
+      - **YES - I use comments. It's fairly easy to create a comment (just content) and get a comment .** We will be using SW comments for persistence. Need to check which user posted the comment. As multiple users could be running this service. (it's cheaper for users if SW handles the persistence and it doesn't need to be that timely...)
       - How about we alter the name of the transaction? add an appedix? this would be computationally easier to deal with? but comments will at least see a time stamp... when the transaction was synced. So that has the timestamp. I am still leaning towards comments.
   - [ACTION] Okay taking the comment idea. Maybe beside adding the comment,"synced-to-LM", we will post the transaction ID from lunch money as well.
     - [ACTION] UPDATE functionality - maybe we can also just post a snapshop of the transaciton in json format in the comment.... then we can do a text _comparison_. If there's anything changed... we can then update the amount owned etc. Then If it's deleted... then also delete the transaction in LM as well.

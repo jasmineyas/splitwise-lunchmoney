@@ -1,55 +1,88 @@
 # Implementation TODO
 
+- [ ] finish this implementation blueprint
+  - clearly state responsibility of each function of each file.
+
+## Phase 0: Script to update all existing splitwise transaction
+
+- [ ] add a comment to all existing transaction with "pre LM <> SW handshake"
+
 ## Phase 1: Project Setup
-- [x] Initialize Go module
+
+- [ ] Initialize Go module
 - [ ] Create .gitignore
 - [ ] Create .env.example
 - [ ] Set up project directory structure
+- [ ] define model.go
 
 ## Phase 2: Configuration
+
 - [ ] Implement config/config.go to load environment variables
   - Splitwise API key
   - Lunch Money access token
-  - Lunch Money asset ID (optional)
-  - Sync interval
-  - Log level
+  - Lunch Money asset ID
 
 ## Phase 3: API Clients
+
+NTS: Need to think about rate limits.
+
 - [ ] Implement splitwise/client.go
+      Responsibility: this file contains all the things that splitwise does... add a comment to a transation, get current user, get all expense,
+
   - GetCurrentUser() - fetch authenticated user ID
-  - GetExpenses(since time.Time) - fetch expenses updated since timestamp
+  - GetExpensesForInsert - how to quickly parse through all transactions (it's quite intensive)
+  - GetExpensesForUpdate - compare hashes
+  - GetExpensesForDelete -
+  - NOTE: Compare the current Splitwise transaction with the metadata in comments to detect changes (this comparison doesn't need to consider which user posted it). However, to keep track of which Lunch Money transaction matches a given Splitwise transaction, we need to check which user posted the "synced-to-LM" tag, as the Lunch Money transaction ID is user-specific. Multiple users could be using this sync service.
   - Define Expense struct matching Splitwise API response
 
 - [ ] Implement lunchmoney/client.go
   - InsertTransactions(transactions []Transaction) - create transactions
   - Define Transaction struct matching Lunch Money API request
+  - UpdateTransactions -
+  - DeleteTransactions
+  - NOTE: LM transaction notes - max 350 characters
 
 ## Phase 4: Sync Logic
-- [ ] Implement sync/state.go
-  - Load/Save sync state from/to JSON file
-  - Track last sync timestamp
-  - Track synced expense IDs
-  - Thread-safe operations with mutex
 
-- [ ] Implement sync/engine.go
-  - TransformExpense() - convert Splitwise expense to Lunch Money transaction(s)
-  - Handle Case A: You paid (create debit + optional credit)
-  - Handle Case B: You owe (create debit)
-  - Filter deleted expenses
-  - Build notes with receipt URLs, categories, etc.
+Add log/slog for each session.
+
+- [ ] Implement sync-engine.go
+      Responsibility: this file contains all the syncing functions - transform splitwise transaction to lunch money transaction;
+  - TransformSWToLMTransaction() - convert Splitwise expense to Lunch Money transaction(s)
+    - "creation_method": "payment" - payment type
+    - vs regular expenses
+  - Post a new comment to Splitwise with the current user:
+    - snapshot_hash (to enable quick change detection)
+    - `"synced-to-LM"` tag.
+    - "user-name" - I guess
+    - Lunch Money transaction ID.
+    - Snapshot of the Lunch Money API request body and LM response when the LM transaction was created for debugging.
+  - Handle update: Create an update to LM.
+  - Handle deletions: If a Splitwise transaction is deleted, remove the corresponding Lunch Money transaction.
 
 ## Phase 5: Main Application
+
 - [ ] Implement main.go
   - Initialize config
   - Initialize API clients
   - Get current user ID from Splitwise
   - Run continuous sync loop with ticker
-  - Handle SIGINT/SIGTERM for graceful shutdown
-  - Structured logging with slog
+  - check splitwise transactions, analyze for transactions for udpates,
 
 ## Phase 6: Testing
+
+- [ ] run the script first (only need to run)
 - [ ] Manual testing with real API credentials
-- [ ] Verify duplicate prevention
-- [ ] Verify correct amount signs (negative for expenses, positive for income)
+- [ ] Verify correct amount signs
+- [ ] verify comments are posted correctly
 - [ ] Verify tags are created correctly
 - [ ] Test error handling
+- Tests:
+  - Transform unit tests: the 4 cases above, with 1 and N counterparties, plus currency variants and with/without receipt.original.
+  - Idempotency: same expense twice → no second LM write.
+  - Update detection: change an amount/participant/date → update LM and overwrite comment (new hash).
+  - Deletion: expense & payment deletions remove LM txn(s).
+  - Paging & backoff: simulate >1 page; simulate 429/5xx.
+  - Legacy tagger (Phase 0): posts the handshake comment only once.
+  - Verify that a transaction added for a past date get captured correctly
