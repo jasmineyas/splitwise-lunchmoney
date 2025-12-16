@@ -2,6 +2,8 @@ Vision:
 
 - The main purpose (MVP) of this script is to reduce data entry labor in lunch money (LM) after creating a split wise (SW) record.
 - Anything else extra is additional and can come after.
+- Assumptions:
+  - We don't use reoccuring transactions feature in Splitwise.
 
 TODOs:
 

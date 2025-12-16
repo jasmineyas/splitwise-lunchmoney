@@ -18,14 +18,12 @@ type Client struct {
 	bearerToken string
 }
 
-type UserInfo struct {
-	UserID    int64  `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+type getCurrentUserResponse struct {
+	User models.User `json:"user"`
 }
 
-type getCurrentUserResponse struct {
-	User UserInfo `json:"user"`
+type getExpensesResponse struct {
+	Expenses []models.SplitwiseExpense `json:"expenses"`
 }
 
 func NewClient(bearerToken string) *Client {
@@ -50,7 +48,7 @@ func (c *Client) newRequest(method, endpoint string, body io.Reader) (*http.Requ
 	return req, nil
 }
 
-func (c *Client) GetUserInfo() (*UserInfo, error) {
+func (c *Client) GetUserInfo() (*models.User, error) {
 	req, err := c.newRequest("GET", "/get_current_user", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request failed: %w", err)
@@ -74,12 +72,37 @@ func (c *Client) GetUserInfo() (*UserInfo, error) {
 	return &userResp.User, nil
 }
 
-func (c *Client) GetAllExpenses() []models.SplitwiseExpense {
-	return []models.SplitwiseExpense{}
+func (c *Client) GetAllExpenses(friendID int64) ([]models.SplitwiseExpense, error) {
+	endpoint := "/get_expenses"
+	if friendID > 0 {
+		endpoint = fmt.Sprintf("/get_expenses?friend_id=%d", friendID)
+	}
+
+	req, err := c.newRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request failed: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("performing request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var expensesResp getExpensesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&expensesResp); err != nil {
+		return nil, fmt.Errorf("decoding response failed: %w", err)
+	}
+
+	return expensesResp.Expenses, nil
 }
 
-func (c *Client) GetExpense(expenseID int64) models.SplitwiseExpense {
-	return models.SplitwiseExpense{}
+func (c *Client) GetExpense(expenseID int64) (models.SplitwiseExpense, error) {
+	return models.SplitwiseExpense{}, nil
 }
 
 func (c *Client) AddCommentToExpense(expenseID int64, comment string) error {
