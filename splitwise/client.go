@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/jasmineyas/splitwise-lunchmoney/models"
@@ -61,7 +62,8 @@ func (c *Client) GetUserInfo() (*models.User, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var userResp getCurrentUserResponse
@@ -90,7 +92,8 @@ func (c *Client) GetAllExpenses(friendID int64) ([]models.SplitwiseExpense, erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var expensesResp getExpensesResponse
@@ -102,13 +105,123 @@ func (c *Client) GetAllExpenses(friendID int64) ([]models.SplitwiseExpense, erro
 }
 
 func (c *Client) GetExpense(expenseID int64) (models.SplitwiseExpense, error) {
-	return models.SplitwiseExpense{}, nil
+	if expenseID <= 0 {
+		return models.SplitwiseExpense{}, fmt.Errorf("invalid expense ID: %d", expenseID)
+	}
+
+	endpoint := fmt.Sprintf("/get_expense?id=%d", expenseID)
+
+	req, err := c.newRequest("GET", endpoint, nil)
+	if err != nil {
+		return models.SplitwiseExpense{}, fmt.Errorf("creating request failed: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return models.SplitwiseExpense{}, fmt.Errorf("performing request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return models.SplitwiseExpense{}, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var expenseResp struct {
+		Expense models.SplitwiseExpense `json:"expense"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&expenseResp); err != nil {
+		return models.SplitwiseExpense{}, fmt.Errorf("decoding response failed: %w", err)
+	}
+	return expenseResp.Expense, nil
+}
+
+func (c *Client) GetExpenseComments(expenseID int64) ([]models.SplitwiseComment, error) {
+	if expenseID <= 0 {
+		return nil, fmt.Errorf("invalid expense ID: %d", expenseID)
+	}
+
+	endpoint := fmt.Sprintf("/get_comments?expense_id=%d", expenseID)
+
+	req, err := c.newRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request failed: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("performing request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var commentsResp struct {
+		Comments []models.SplitwiseComment `json:"comments"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&commentsResp); err != nil {
+		return nil, fmt.Errorf("decoding response failed: %w", err)
+	}
+
+	return commentsResp.Comments, nil
 }
 
 func (c *Client) AddCommentToExpense(expenseID int64, comment string) error {
+	if expenseID <= 0 {
+		return fmt.Errorf("invalid expense ID: %d", expenseID)
+	}
+
+	if comment == "" {
+		return fmt.Errorf("comment cannot be empty")
+	}
+
+	endpoint := fmt.Sprintf("/create_comment?expense_id=%d&content=%s", expenseID, url.PathEscape(comment))
+	fmt.Println(endpoint)
+
+	req, err := c.newRequest("POST", endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("creating request failed: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("performing request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
 	return nil
 }
 
-func (c *Client) DeleteCommentFromExpense(expenseID int64, commentID int64) error {
+func (c *Client) DeleteComment(commentID int64) error {
+	if commentID <= 0 {
+		return fmt.Errorf("invalid comment ID: %d", commentID)
+	}
+
+	endpoint := fmt.Sprintf("/delete_comment/%d", commentID)
+
+	req, err := c.newRequest("POST", endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("creating request failed: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("performing request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
 	return nil
 }

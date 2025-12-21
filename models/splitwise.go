@@ -33,3 +33,14 @@ type ExpenseUser struct {
 	OwedShare  string `json:"owed_share"`
 	NetBalance string `json:"net_balance"`
 }
+
+type SplitwiseComment struct {
+	ID           int64      `json:"id"`
+	Content      string     `json:"content"`
+	CommentType  string     `json:"comment_type"`
+	RelationType string     `json:"relation_type"`
+	RelationID   int64      `json:"relation_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	DeletedAt    *time.Time `json:"deleted_at"`
+	User         User       `json:"user"`
+}
