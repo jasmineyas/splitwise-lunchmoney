@@ -104,7 +104,7 @@ func (c *Client) GetAllExpenses(friendID int64) ([]models.SplitwiseExpense, erro
 	return expensesResp.Expenses, nil
 }
 
-func (c *Client) GetExpense(expenseID int64) (models.SplitwiseExpense, error) {
+func (c *Client) GetExpenseByID(expenseID int64) (models.SplitwiseExpense, error) {
 	if expenseID <= 0 {
 		return models.SplitwiseExpense{}, fmt.Errorf("invalid expense ID: %d", expenseID)
 	}

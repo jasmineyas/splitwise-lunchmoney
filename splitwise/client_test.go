@@ -391,7 +391,7 @@ func TestGetExpense(t *testing.T) {
 			// Skip server setup for invalid ID tests
 			if tt.expenseID <= 0 {
 				client := NewClient("test-token")
-				_, err := client.GetExpense(tt.expenseID)
+				_, err := client.GetExpenseByID(tt.expenseID)
 				if err == nil {
 					t.Error("Expected error for invalid expense ID but got none")
 				}
@@ -427,7 +427,7 @@ func TestGetExpense(t *testing.T) {
 			client.baseURL = server.URL
 
 			// Call the function
-			expense, err := client.GetExpense(tt.expenseID)
+			expense, err := client.GetExpenseByID(tt.expenseID)
 
 			// Check error expectation
 			if tt.expectError && err == nil {
