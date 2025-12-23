@@ -353,3 +353,10 @@ func (c *Client) DeleteTransaction() error {
 	// will come back to this later
 	return nil
 }
+
+func (c *Client) checkNoteLength(notes string) error {
+	if len(notes) > 350 {
+		return fmt.Errorf("notes exceed maximum length of 255 characters")
+	}
+	return nil
+}
