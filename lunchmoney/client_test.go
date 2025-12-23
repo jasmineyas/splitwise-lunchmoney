@@ -925,8 +925,9 @@ func TestUpdateTransaction(t *testing.T) {
 					body, _ := io.ReadAll(r.Body)
 					bodyStr := string(body)
 					if len(bodyStr) > 0 {
-						if !containsString(bodyStr, "transaction") {
-							t.Error("expected request body to contain 'transaction' key")
+						// Check that request body contains transaction wrapper
+						if !containsString(bodyStr, `"transaction"`) && !containsString(bodyStr, `"Transaction"`) {
+							t.Errorf("expected request body to contain 'transaction' key, got: %s", bodyStr)
 						}
 					}
 				}

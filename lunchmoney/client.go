@@ -296,12 +296,20 @@ func (c *Client) getTagID(tag string) (tagID int64, err error) {
 }
 
 func (c *Client) UpdateTransaction(transactionID int64, updatedTransaction models.LunchMoneyTransaction) error {
+
 	if transactionID <= 0 {
 		return fmt.Errorf("invalid transaction ID: %d", transactionID)
 	}
 
-	// The API expects transaction fields directly in the request body, not nested
-	jsonData, err := json.Marshal(updatedTransaction)
+	requestBody := struct {
+		Transaction     models.LunchMoneyTransaction `json:"transaction"`
+		DebitAsNegative bool                         `json:"debit_as_negative"`
+	}{
+		Transaction:     updatedTransaction,
+		DebitAsNegative: true,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request body: %w", err)
 	}
@@ -342,5 +350,6 @@ func (c *Client) UpdateTransaction(transactionID int64, updatedTransaction model
 }
 
 func (c *Client) DeleteTransaction() error {
+	// will come back to this later
 	return nil
 }
