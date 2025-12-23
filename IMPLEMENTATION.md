@@ -20,7 +20,7 @@
 
 ## Phase 2: Configuration
 
-- [ ] Implement config/config.go to load environment variables
+- [x] Implement config/config.go to load environment variables
   - Splitwise API key
   - Lunch Money access token
   - Lunch Money asset ID
@@ -105,3 +105,7 @@ Add log/slog for each session.
   - Paging & backoff: simulate >1 page; simulate 429/5xx.
   - Legacy tagger (Phase 0): posts the handshake comment only once.
   - Verify that a transaction added for a past date get captured correctly
+
+## Implementation thoughts
+
+1. order of implementing... maybe I should have written from the core logic (syncing) as lunchmoney and splitwise functionalities are mostly like helpers, even if I have thought out what type of functions I need.
