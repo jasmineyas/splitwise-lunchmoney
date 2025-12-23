@@ -10,3 +10,10 @@ type LunchMoneyTransaction struct {
 	Status   string   `json:"status"`
 	Tags     []string `json:"tags"`
 }
+
+type LunchMoneyTag struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Archived    bool   `json:"archived"`
+}
