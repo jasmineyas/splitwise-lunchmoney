@@ -1,11 +1,14 @@
 package lunchmoney
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/jasmineyas/splitwise-lunchmoney/models"
 )
 
 type Client struct {
@@ -76,8 +79,68 @@ func (c *Client) VerifyAssetExist(assetID int64) (bool, error) {
 	return false, nil
 }
 
-func (c *Client) AddTransaction() error {
-	return nil
+func (c *Client) AddTransactions(transactions []models.LunchMoneyTransaction) (transactionIDs []string, err error) {
+	if len(transactions) == 0 {
+		return []string{}, fmt.Errorf("no transactions to add")
+	}
+
+	// Validate required fields for each transaction
+	for i, tx := range transactions {
+		if tx.Date == "" {
+			return []string{}, fmt.Errorf("transaction[%d]: date is required", i)
+		}
+		if tx.Amount == "" {
+			return []string{}, fmt.Errorf("transaction[%d]: amount is required", i)
+		}
+	}
+
+	requestBody := struct {
+		Transactions    []models.LunchMoneyTransaction `json:"transactions"`
+		DebitAsNegative bool                           `json:"debit_as_negative"`
+	}{
+		Transactions:    transactions,
+		DebitAsNegative: true,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	req, err := c.newRequest("POST", "/transactions", bytes.NewReader(jsonData))
+	if err != nil {
+		return []string{}, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return []string{}, err
+	}
+
+	defer resp.Body.Close()
+
+	// seems like lunchmoney returns 200 even on errors right now, even though the doc says there would be 404 response
+	// https://lunchmoney.dev/#insert-transactions
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return []string{}, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var responseBody struct {
+		IDs   []string `json:"ids"`
+		Error []string `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&responseBody); err != nil {
+		return []string{}, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(responseBody.Error) > 0 {
+		return []string{}, fmt.Errorf("API error: %v", responseBody.Error)
+	}
+
+	return responseBody.IDs, nil
 }
 
 func (c *Client) GetTransactions() error {
