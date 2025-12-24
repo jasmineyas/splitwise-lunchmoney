@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/jasmineyas/splitwise-lunchmoney/config"
+	"github.com/jasmineyas/splitwise-lunchmoney/detector"
 	"github.com/jasmineyas/splitwise-lunchmoney/lunchmoney"
 	"github.com/jasmineyas/splitwise-lunchmoney/models"
 	"github.com/jasmineyas/splitwise-lunchmoney/splitwise"
@@ -52,8 +53,16 @@ func main() {
 	logger.Info("Fetched comments for expenses", "count", len(commentsMap))
 
 	// 2. detect changes
-	// toCreate, toUpdate, toDelete := detector.DetectChanges()
+	toCreate, toUpdate, toDelete, err := detector.DetectChanges(expenses, commentsMap)
+	if err != nil {
+		logger.Error("Error detecting changes", "error", err)
+		return
+	}
+	logger.Info("Detected changes", "toCreate", len(toCreate), "toUpdate", len(toUpdate), "toDelete", len(toDelete))
 
 	// 3. execute sync data
+	engine.Sync(toCreate, toUpdate, toDelete)
+
+	logger.Info("Sync completed successfully")
 
 }
