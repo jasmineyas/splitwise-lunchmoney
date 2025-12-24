@@ -74,10 +74,20 @@ func (c *Client) GetUserInfo() (*models.User, error) {
 	return &userResp.User, nil
 }
 
-func (c *Client) GetAllExpenses(friendID int64) ([]models.SplitwiseExpense, error) {
-	endpoint := "/get_expenses"
+func (c *Client) GetAllExpenses(friendID int64, datedAfter string) ([]models.SplitwiseExpense, error) {
+	params := url.Values{}
+
 	if friendID > 0 {
-		endpoint = fmt.Sprintf("/get_expenses?friend_id=%d", friendID)
+		params.Add("friend_id", fmt.Sprintf("%d", friendID))
+	}
+
+	if datedAfter != "" {
+		params.Add("dated_after", datedAfter)
+	}
+
+	endpoint := "/get_expenses"
+	if len(params) > 0 {
+		endpoint += "?" + params.Encode()
 	}
 
 	req, err := c.newRequest("GET", endpoint, nil)

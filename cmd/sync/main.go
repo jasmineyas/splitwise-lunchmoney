@@ -33,7 +33,8 @@ func main() {
 	// wrap everything in a loop
 
 	// 1. fetch data - all expenses and associated comments with a friend
-	expenses, err := swClient.GetAllExpenses(cfg.UserBSplitwiseID)
+	// we will update the date later
+	expenses, err := swClient.GetAllExpenses(cfg.UserBSplitwiseID, "")
 	if err != nil {
 		logger.Error("Error fetching expenses with friend", "error", err)
 		return
@@ -53,15 +54,19 @@ func main() {
 	logger.Info("Fetched comments for expenses", "count", len(commentsMap))
 
 	// 2. detect changes
-	toCreate, toUpdate, toDelete, err := detector.DetectChanges(expenses, commentsMap)
+	toCreate, err := detector.DetectChanges(expenses, commentsMap)
 	if err != nil {
 		logger.Error("Error detecting changes", "error", err)
 		return
 	}
-	logger.Info("Detected changes", "toCreate", len(toCreate), "toUpdate", len(toUpdate), "toDelete", len(toDelete))
+	logger.Info("Detected changes", "toCreate", len(toCreate))
 
 	// 3. execute sync data
-	engine.Sync(toCreate, toUpdate, toDelete)
+	err = engine.Sync(toCreate, []models.UpdateAction{}, []models.DeleteAction{})
+	if err != nil {
+		logger.Error("Error syncing data", "error", err)
+		return
+	}
 
 	logger.Info("Sync completed successfully")
 

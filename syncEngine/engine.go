@@ -29,7 +29,9 @@ func New(swClient *splitwise.Client, lmClient *lunchmoney.Client, cfg *config.Co
 // and find a place to deploy it
 // then we do feature update :D
 
-func (e *Engine) Sync(toCreate, toUpdate, toDelete []models.SplitwiseExpense) error {
+// NTS - work on this sync function
+
+func (e *Engine) Sync(toCreate []models.SplitwiseExpense, toUpdate []models.UpdateAction, toDelete []models.DeleteAction) error {
 	err := e.syncUpdate(toUpdate)
 	if err != nil {
 		return err
@@ -58,13 +60,13 @@ func (e *Engine) syncCreate(toCreate []models.SplitwiseExpense) error {
 }
 
 // to come
-func (e *Engine) syncUpdate(toUpdate []models.SplitwiseExpense) error {
+func (e *Engine) syncUpdate(toUpdate []models.UpdateAction) error {
 	//  compare existing splitwise expense with the expense in the comment
 	return nil
 }
 
 // to come
-func (e *Engine) syncDelete(toDelete []models.SplitwiseExpense) error {
+func (e *Engine) syncDelete(toDelete []models.DeleteAction) error {
 	//  placeholder implementation
 	return nil
 }

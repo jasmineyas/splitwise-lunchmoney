@@ -123,6 +123,7 @@ func TestGetAllExpenses(t *testing.T) {
 	tests := []struct {
 		name            string
 		friendID        int64
+		datedAfter      string
 		expectedPath    string
 		statusCode      int
 		responseBody    string
@@ -131,8 +132,9 @@ func TestGetAllExpenses(t *testing.T) {
 		expectError     bool
 	}{
 		{
-			name:         "success with expenses - no friend filter",
+			name:         "success with expenses - no filters",
 			friendID:     0,
+			datedAfter:   "",
 			expectedPath: "/get_expenses",
 			statusCode:   200,
 			responseBody: `{
@@ -188,6 +190,7 @@ func TestGetAllExpenses(t *testing.T) {
 		{
 			name:         "success with friend filter",
 			friendID:     50086667,
+			datedAfter:   "",
 			expectedPath: "/get_expenses?friend_id=50086667",
 			statusCode:   200,
 			responseBody: `{
@@ -212,6 +215,7 @@ func TestGetAllExpenses(t *testing.T) {
 		{
 			name:          "success with empty expenses",
 			friendID:      0,
+			datedAfter:    "",
 			expectedPath:  "/get_expenses",
 			statusCode:    200,
 			responseBody:  `{"expenses": []}`,
@@ -219,8 +223,59 @@ func TestGetAllExpenses(t *testing.T) {
 			expectError:   false,
 		},
 		{
+			name:         "success with dated_after filter",
+			friendID:     0,
+			datedAfter:   "2025-12-01T00:00:00Z",
+			expectedPath: "/get_expenses?dated_after=2025-12-01T00%3A00%3A00Z",
+			statusCode:   200,
+			responseBody: `{
+				"expenses": [
+					{
+						"id": 4198563142,
+						"description": "Recent expense",
+						"cost": "100.0",
+						"currency_code": "USD",
+						"date": "2025-12-15T00:00:00Z",
+						"deleted_at": null,
+						"deleted_by": null,
+						"repayments": [],
+						"users": []
+					}
+				]
+			}`,
+			expectedCount:   1,
+			expectedFirstID: 4198563142,
+			expectError:     false,
+		},
+		{
+			name:         "success with both friend and dated_after filters",
+			friendID:     50086667,
+			datedAfter:   "2025-12-01T00:00:00Z",
+			expectedPath: "/get_expenses?dated_after=2025-12-01T00%3A00%3A00Z&friend_id=50086667",
+			statusCode:   200,
+			responseBody: `{
+				"expenses": [
+					{
+						"id": 4198563142,
+						"description": "Friend recent expense",
+						"cost": "50.0",
+						"currency_code": "USD",
+						"date": "2025-12-10T00:00:00Z",
+						"deleted_at": null,
+						"deleted_by": null,
+						"repayments": [],
+						"users": []
+					}
+				]
+			}`,
+			expectedCount:   1,
+			expectedFirstID: 4198563142,
+			expectError:     false,
+		},
+		{
 			name:         "unauthorized",
 			friendID:     0,
+			datedAfter:   "",
 			expectedPath: "/get_expenses",
 			statusCode:   401,
 			responseBody: `{"error": "Invalid token"}`,
@@ -229,6 +284,7 @@ func TestGetAllExpenses(t *testing.T) {
 		{
 			name:         "server error",
 			friendID:     0,
+			datedAfter:   "",
 			expectedPath: "/get_expenses",
 			statusCode:   500,
 			responseBody: `{"error": "Internal server error"}`,
@@ -237,6 +293,7 @@ func TestGetAllExpenses(t *testing.T) {
 		{
 			name:         "invalid json",
 			friendID:     0,
+			datedAfter:   "",
 			expectedPath: "/get_expenses",
 			statusCode:   200,
 			responseBody: `{invalid json}`,
@@ -275,7 +332,7 @@ func TestGetAllExpenses(t *testing.T) {
 			client.baseURL = server.URL
 
 			// Call the function
-			expenses, err := client.GetAllExpenses(tt.friendID)
+			expenses, err := client.GetAllExpenses(tt.friendID, tt.datedAfter)
 
 			// Check error expectation
 			if tt.expectError && err == nil {
