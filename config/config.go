@@ -10,14 +10,15 @@ import (
 
 type Config struct {
 	SplitwiseBearerToken string
-	UserA                UserConfig
-	UserB                UserConfig
+	UserBSplitwiseID     int64
+	UserALunchMoney      LunchMoneyUserConfig
+	UserBLunchMoney      LunchMoneyUserConfig
 	TestMode             bool
 }
 
-type UserConfig struct {
-	LunchMoneyBearerToken             string
-	LunchMoneySplitwiseAccountAssetID int64
+type LunchMoneyUserConfig struct {
+	BearerToken             string
+	SplitwiseAccountAssetID int64
 }
 
 func Load() (*Config, error) {
@@ -36,17 +37,23 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("missing SPLITWISE_BEARER_TOKEN in environment")
 	}
 
+	var err error
+	cfg.UserBSplitwiseID, err = strconv.ParseInt(os.Getenv("USER_B_SPLITWISE_ID"), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid USER_B_SPLITWISE_ID: %w", err)
+	}
+
 	userA, err := loadUserConfig("USER_A")
 	if err != nil {
 		return nil, fmt.Errorf("user A config: %w", err)
 	}
-	cfg.UserA = userA
+	cfg.UserALunchMoney = userA
 
 	userB, err := loadUserConfig("USER_B")
 	if err != nil {
 		return nil, fmt.Errorf("user B config: %w", err)
 	}
-	cfg.UserB = userB
+	cfg.UserBLunchMoney = userB
 
 	testModeStr := os.Getenv("TEST")
 	if testModeStr != "" {
@@ -62,11 +69,11 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-func loadUserConfig(user string) (UserConfig, error) {
-	var cfg UserConfig
+func loadUserConfig(user string) (LunchMoneyUserConfig, error) {
+	var cfg LunchMoneyUserConfig
 
-	cfg.LunchMoneyBearerToken = os.Getenv(user + "_LUNCHMONEY_BEARER_TOKEN")
-	if cfg.LunchMoneyBearerToken == "" {
+	cfg.BearerToken = os.Getenv(user + "_LUNCHMONEY_BEARER_TOKEN")
+	if cfg.BearerToken == "" {
 		return cfg, fmt.Errorf("missing %s_LUNCHMONEY_BEARER_TOKEN in environment", user)
 	}
 
@@ -79,7 +86,7 @@ func loadUserConfig(user string) (UserConfig, error) {
 	if err != nil {
 		return cfg, fmt.Errorf("invalid %s_LUNCHMONEY_SPLITWISE_ACCOUNT_ASSET_ID: %w", user, err)
 	}
-	cfg.LunchMoneySplitwiseAccountAssetID = assetID
+	cfg.SplitwiseAccountAssetID = assetID
 
 	return cfg, nil
 }
